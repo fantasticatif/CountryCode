@@ -292,6 +292,18 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
     
 }
 
+public extension CountryPicker {
+    static func allCountries(completion: @escaping (_ countries: [Country]) -> Void) {
+        DispatchQueue.global(qos: .utility).async {
+            var countries = Array(countryNamesByCode())
+            countries.sort { ($0.name ?? "") < ($1.name ?? "") }
+            DispatchQueue.main.async {
+                completion(countries)
+            }
+        }
+    }
+}
+
 //MARK:- Private Methods
 private extension CountryPicker {
     func setupCountry() {
