@@ -178,6 +178,8 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
     /// sorted array with data
     ///
     /// - Returns: sorted array with all information phone, flag, name
+    private static let excludedCountryCodes: Set<String> = ["IL"]
+
     private static func countryNamesByCode() -> Set<Country> {
         var countries = Set<Country>()
 #if SWIFT_PACKAGE
@@ -202,6 +204,10 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
                           let phoneCode = countryObj["dial_code"] as? String,
                           let name = countryObj["name"] as? String else {
                         return countries
+                    }
+
+                    if excludedCountryCodes.contains(code.uppercased()) {
+                        continue
                     }
                     
                     let flagName = "CountryPicker.bundle/Images/\(code.uppercased())"
