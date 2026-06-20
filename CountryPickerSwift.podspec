@@ -8,8 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'CountryPickerSwift'
-  s.version          = '1.8.1'
-  s.swift_version    = '4.0'
+  s.version          = '1.8.3'
   s.summary          = 'Swift CountryPicker'
 
 # This description is used to generate tags and improve search results.
@@ -30,6 +29,6 @@ TODO: CountryCode Picker
   s.ios.deployment_target = '8.0'
   s.module_name  = 'CountryPicker'
   s.source_files = 'CountryPicker/Classes/*.{swift}'
-  s.resources = 'CountryPicker/**/*.{xib,bundle,xcassets}'
+  s.resources = 'CountryPicker/**/*.{xib,bundle,xcassets,xcprivacy}'
 
 end

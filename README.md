@@ -7,11 +7,11 @@
 [![Swift version](https://img.shields.io/badge/Swift-4-orange.svg)](https://cocoapods.org/pods/CountryPickerSwift)
 [![Beerpay](https://beerpay.io/4taras4/CountryCode/badge.svg?style=flat)](https://beerpay.io/4taras4/CountryCode)
 
-Picker code  Swift 3 / 4.
+Picker code  Swift 3 / 4 / 5.
 
 ## Example
 To run the example project, clone the repo, and run `pod install` from the Example directory first. 
-![1](http://i68.tinypic.com/w2bspi.png)
+![1](https://github.com/4taras4/CountryCode/blob/master/bin/screenShot.png)
 
 
 ## Usage
@@ -59,7 +59,7 @@ class ViewController: UIViewController, CountryPickerDelegate {
 
 CountryPicker is available through [CocoaPods](http://cocoapods.org). To install
 
-*Swift 4  (Xcode 10)*  `pod 'CountryPickerSwift', '1.8'`
+*Swift 4-5  (Xcode 10+)*  `pod 'CountryPickerSwift', '1.8'`
 
 *Swift 3.1 (Xcode 9)*  `pod 'CountryPickerSwift', '1.7'`
 
@@ -81,15 +81,8 @@ end
 You can use [The Swift Package Manager](https://swift.org/package-manager) to install `CountryPicker` by adding the proper description to your `Package.swift` file:
 
 ```swift
-import PackageDescription
+Add package:     https://github.com/4taras4/CountryCode
 
-let package = Package(
-    name: "YOUR_PROJECT_NAME",
-    targets: [],
-    dependencies: [
-        .Package(url: "git@github.com:4taras4/CountryCode.git")
-    ]
-)
 ```
 
 Note that the [Swift Package Manager](https://swift.org/package-manager) is still in early design and development, for more information checkout its [GitHub Page](https://github.com/apple/swift-package-manager)

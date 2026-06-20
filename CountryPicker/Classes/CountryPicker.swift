@@ -44,33 +44,54 @@ public struct Country {
     }
     
     public var flag: UIImage? {
-        return UIImage(named: flagName, in: Bundle(for: CountryPicker.self), compatibleWith: nil)
+#if SWIFT_PACKAGE
+        let bundle = Bundle.module
+#else
+        let bundle = Bundle(for: CountryPicker.self)
+#endif
+        return UIImage(named: flagName, in: bundle, compatibleWith: nil)
+    }
+}
+
+extension Country: Hashable, Equatable {
+    public static func ==(lhs: Country, rhs: Country) -> Bool {
+        guard let lhsCode = lhs.code, let rhsCode = rhs.code else {
+            return false
+        }
+        return lhsCode == rhsCode
     }
 }
 
 public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewDataSource, UIGestureRecognizerDelegate {
     open var currentCountry: Country? = nil
-    @objc public var displayOnlyCountriesWithCodes: [String]?
-    @objc public var exeptCountriesWithCodes: [String]?
     
-    var countries: [Country] {
-        let allCountries: [Country] = CountryPicker.countryNamesByCode()
-        if let display = displayOnlyCountriesWithCodes {
-            let filtered = allCountries.filter { country in display.contains(where: { code in country.code == code }) }
-            return filtered
+    //Converted to set since no 2 country codes should be same
+    @objc public var displayOnlyCountriesWithCodes: Set<String>? {
+        didSet {
+            //Updating country list with `display only codes`
+            setupCountry()
         }
-        if let display = exeptCountriesWithCodes {
-            let filtered = allCountries.filter { country in display.contains(where: { code in country.code != code }) }
-            return filtered
-        }
-        return allCountries
     }
+    //Converted to set since no 2 country codes should be same
+    @objc public var exeptCountriesWithCodes: Set<String>? {
+        didSet {
+            //Updating country list with `except countries codes`
+            setupCountry()
+        }
+    }
+    
+    //Countries list to be shown
+    private var countries: [Country] = Array(CountryPicker.countryNamesByCode())
+    
     @objc public weak var countryPickerDelegate: CountryPickerDelegate?
     @objc public var showPhoneNumbers: Bool = false
     open var theme: CountryViewTheme?
     
+    //Countries stored locally to avoid heavier `JSONSerialization` operation
+    private let locallyStoredCountries: Set<Country>
     
     init() {
+        self.locallyStoredCountries = CountryPicker.countryNamesByCode()
         super.init(frame: .zero)
         setup()
     }
@@ -79,11 +100,13 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
     ///
     /// - Parameter frame: initialization
     override init(frame: CGRect) {
+        self.locallyStoredCountries = CountryPicker.countryNamesByCode()
         super.init(frame: frame)
         setup()
     }
     
     required public init?(coder aDecoder: NSCoder) {
+        self.locallyStoredCountries = CountryPicker.countryNamesByCode()
         super.init(coder: aDecoder)
         setup()
     }
@@ -106,19 +129,26 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
     /// - Parameter code: selected country
     public func setCountry(_ code: String) {
         var row = 0
-        for index in 0..<countries.count {
-            if countries[index].code == code {
+        
+        for (index, country) in countries.enumerated() {
+            if country.code == code {
                 row = index
-                currentCountry = countries[index]
+                currentCountry = country
                 break
             }
         }
         
         self.selectRow(row, inComponent: 0, animated: true)
-        let country = countries[row]
-        currentCountry = country
-        if let countryPickerDelegate = countryPickerDelegate {
-            countryPickerDelegate.countryPhoneCodePicker(self, didSelectCountryWithName: country.name!, countryCode: country.code!, phoneCode: country.phoneCode!, flag: country.flag!)
+        
+        if let countryPickerDelegate = countryPickerDelegate,
+           let currentCountry = currentCountry {
+            countryPickerDelegate.countryPhoneCodePicker(
+                self,
+                didSelectCountryWithName: currentCountry.name!,
+                countryCode: currentCountry.code!,
+                phoneCode: currentCountry.phoneCode!,
+                flag: currentCountry.flag!
+            )
         }
     }
     
@@ -148,9 +178,13 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
     /// sorted array with data
     ///
     /// - Returns: sorted array with all information phone, flag, name
-    private static func countryNamesByCode() -> [Country] {
-        var countries = [Country]()
+    private static func countryNamesByCode() -> Set<Country> {
+        var countries = Set<Country>()
+#if SWIFT_PACKAGE
+        let frameworkBundle = Bundle.module
+#else
         let frameworkBundle = Bundle(for: self)
+#endif
         guard let jsonPath = frameworkBundle.path(forResource: "CountryPicker.bundle/Data/countryCodes", ofType: "json"), let jsonData = try? Data(contentsOf: URL(fileURLWithPath: jsonPath)) else {
             return countries
         }
@@ -164,14 +198,16 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
                         return countries
                     }
                     
-                    guard let code = countryObj["code"] as? String, let phoneCode = countryObj["dial_code"] as? String, let name = countryObj["name"] as? String else {
+                    guard let code = countryObj["code"] as? String,
+                          let phoneCode = countryObj["dial_code"] as? String,
+                          let name = countryObj["name"] as? String else {
                         return countries
                     }
                     
                     let flagName = "CountryPicker.bundle/Images/\(code.uppercased())"
                     
                     let country = Country(code: code, name: name, phoneCode: phoneCode, flagName: flagName)
-                    countries.append(country)
+                    countries.insert(country)
                 }
                 
             }
@@ -233,7 +269,6 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
     ///   - component: description
     @objc open func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         let country = countries[row]
-        currentCountry = country
         if let countryPickerDelegate = countryPickerDelegate {
             countryPickerDelegate.countryPhoneCodePicker(self, didSelectCountryWithName: country.name!, countryCode: country.code!, phoneCode: country.phoneCode!, flag: country.flag!)
         }
@@ -246,7 +281,7 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
             let selectedRowFrame: CGRect = self.bounds.insetBy(dx: 0, dy: (self.frame.height - rowHeight) / 2.0)
             let userTappedOnSelectedRow = selectedRowFrame.contains(tapRecognizer.location(in: self))
             if (userTappedOnSelectedRow) {
-                _ = self.pickerView(self, didSelectRow: self.selectedRow(inComponent: 0), inComponent: 0)
+                self.pickerView(self, didSelectRow: self.selectedRow(inComponent: 0), inComponent: 0)
             }
         }
     }
@@ -255,4 +290,41 @@ public class CountryPicker: UIPickerView, UIPickerViewDelegate, UIPickerViewData
         return true
     }
     
+}
+
+//MARK:- Private Methods
+private extension CountryPicker {
+    func setupCountry() {
+        //Mapping to country codes
+        let allCountriesCode = locallyStoredCountries.compactMap({ $0.code })
+        
+        if let display = displayOnlyCountriesWithCodes {
+            // Filtering `display codes` from local storage
+            let filteredCodes = Set(allCountriesCode).intersection(display)
+            // Filtering countries
+            updateCountryList(with: filteredCodes)
+        }
+        if let display = exeptCountriesWithCodes {
+            // Filtering `display codes` from local storage
+            let filteredCodes = Set(allCountriesCode).subtracting(display)
+            // Filtering countries
+            updateCountryList(with: filteredCodes)
+        }
+    }
+    
+    func updateCountryList(with filteredCodes: Set<String>) {
+        let filteredCountries = locallyStoredCountries.filter { country in
+            return filteredCodes.contains(country.code ?? "")
+        }
+        countries = Array(filteredCountries)
+        
+        //Sorting countries based on name
+        sortCountries()
+    }
+    
+    func sortCountries() {
+        countries.sort { country1, country2 in
+            (country1.name ?? "") < (country2.name ?? "")
+        }
+    }
 }
